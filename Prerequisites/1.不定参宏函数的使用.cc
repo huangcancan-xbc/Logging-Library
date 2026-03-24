@@ -78,6 +78,7 @@
 // void va_end(va_list ap);                     // 清理 va_list，结束变参读取（必须最后一个调用），参数：va_list变量
 // void va_copy(va_list dest, va_list src);     // 拷贝一份 va_list（C99+，需要“备份”参数列表时用），参数：目标va_list、源va_list
 
+// #define _GNU_SOURCE /* See feature_test_macros(7) */
 #include <iostream>
 #include <stdarg.h>
 using namespace std;
@@ -102,11 +103,34 @@ void printNum(int count, ...)
     va_end(ap);
 }
 
+// man vasprintf
+// vasprintf：自动分配足够大的内存，把格式化结果存到 res 中，返回字符数，-1表示失败
+// 第1个参数：char **strp —— 传 &res（char* 的地址），vasprintf 会自动分配内存并把指针写到这里
+// 第2个参数：const char *fmt —— 自己写的格式字符串（如 "%d %s\n"）
+// 第3个参数：va_list ap —— 固定传已初始化的 va_list（用 va_start 拿到的参数列表）
+void myprintf(const char* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    char *res;
+    int ret = vasprintf(&res, format, ap);
+    if(ret != -1)
+    {
+        printf("%s", res);
+        free(res);
+    }
+
+    va_end(ap);
+}
+
 int main()
 {
-    LOG("小米里的大麦\n");
-    printNum(2, 123, 123456);
-    printNum(5, 10, 20, 30, 40, 50);
+    // LOG("小米里的大麦\n");
+    // printNum(2, 123, 123456);
+    // printNum(5, 10, 20, 30, 40, 50);
+
+    myprintf("%s-%d\n", "小米里的大麦", 666666);
+    myprintf("小米里的大麦\n");
 
     return 0;
 }
