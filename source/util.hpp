@@ -5,6 +5,8 @@
 // 获取文件所在路径
 // 创建目录
 
+#ifndef __M_UTIL_H_
+#define __M_UTIL_H_
 
 #include <iostream>
 #include <ctime>
@@ -19,7 +21,7 @@ namespace mylog
         {
         public:
             // 获取系统时间
-            static size_t getTime()
+            static size_t now()
             {
                 return (size_t)time(nullptr);
             }
@@ -51,7 +53,7 @@ namespace mylog
             }
 
             // 获取文件所在路径
-            static std::string path(const std::string &pathname)
+            static std::string getPath(const std::string &pathname)
             {
                 // find_last_of：在当前字符串的pos索引位置开始，查找最后一个位于子串s的字符
                 // 参数：目标字符串，起始位置（默认从0开始）
@@ -66,7 +68,7 @@ namespace mylog
             }
 
             // 创建目录
-            void createDirectory(const std::string &pathname)
+            static void createDirectory(const std::string &pathname)
             {
                 size_t pos = 0, index = 0;
                 while(index < pathname.size())
@@ -104,3 +106,5 @@ namespace mylog
         };
     }
 }
+
+#endif
