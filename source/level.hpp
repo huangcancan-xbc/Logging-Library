@@ -1,6 +1,8 @@
 // 定义枚举类，枚举出日志等级
 // 提供转接口：将枚举转换成对应的字符串
 
+#ifndef __M_LEVEL_H__
+#define __M_LEVEL_H__
 
 namespace mylog
 {
@@ -18,7 +20,7 @@ namespace mylog
             OFF
         };
 
-        const char *toString(LogLevel::value level)
+        static const char *toString(LogLevel::value level)
         {
             switch(level)
             {
@@ -34,3 +36,6 @@ namespace mylog
         }
     };
 }
+
+
+#endif
