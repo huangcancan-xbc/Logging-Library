@@ -11,7 +11,7 @@
 
 
 
-// 示例：[14:30:25][1234][myapp][main.cpp:100][INF0]  这是日志消息
+// 示例：[14:30:25][1234][myapp][main.cpp:100][INFO]  这是日志消息
 
 namespace mylog
 {
@@ -20,7 +20,7 @@ namespace mylog
     {
     public:
         using ptr = std::shared_ptr<FormatItem>;
-        virtual void format(std::ostream &out, LogMsg &msg) = 0;
+        virtual void format(std::ostream &out, const LogMsg &msg) = 0;
     };
 
 
@@ -31,7 +31,7 @@ namespace mylog
     class MsgFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << msg._payload;
         }
@@ -41,7 +41,7 @@ namespace mylog
     class LevelFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << LogLevel::toString(msg._level);
         }
@@ -51,7 +51,7 @@ namespace mylog
     class TimeFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             // localtime_r能将时间戳分解成年、月、日、时、分、秒等（线程安全）
             // 参数：指向time_t时间戳的指针、struct tm 结构体，成功返回struct tm 结构体指针，失败为nullptr
@@ -80,7 +80,7 @@ namespace mylog
     class FileFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << msg._file;
         }
@@ -90,7 +90,7 @@ namespace mylog
     class LineFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << msg._line;
         }
@@ -100,7 +100,7 @@ namespace mylog
     class ThreadFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << msg._tid;
         }
@@ -110,7 +110,7 @@ namespace mylog
     class LoggerFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << msg._logger;
         }
@@ -120,7 +120,7 @@ namespace mylog
     class TabFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << "\t";
         }
@@ -130,7 +130,7 @@ namespace mylog
     class NewLineFormatItem : public FormatItem
     {
     public:
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << "\n";
         }
@@ -146,7 +146,7 @@ namespace mylog
 
         }
 
-        void format(std::ostream &out, LogMsg &msg) override
+        void format(std::ostream &out, const LogMsg &msg) override
         {
             out << _str;
         }
@@ -176,21 +176,21 @@ namespace mylog
         }
 
         // 对msg进行格式化/组装输出
-        void format(std::ostream &out, LogMsg &msg)
+        void format(std::ostream &out, const LogMsg &msg)
         {
             for(auto& item : _items)
             {
                 item->format(out, msg);
             }
         }
-        std::string format(LogMsg &msg)
+        std::string format(const LogMsg &msg)
         {
             std::stringstream ss;
             format(ss, msg);
             return ss.str();
         }
-        
 
+    private:
         // 解析格式模板字符串，把每个"零部件"拆出来
         bool parsePattern()
         {
@@ -277,7 +277,6 @@ namespace mylog
             return true;
         }
         
-    private:
         // 根据不同的格式化字符创建不同的格式化子项对象（根据代号创建对应零部件工厂）
         FormatItem::ptr createItem(const std::string &key, const std::string &val)
         {
