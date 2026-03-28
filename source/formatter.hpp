@@ -5,6 +5,11 @@
 #include "message.hpp"
 #include <memory>
 #include <ctime>
+#include <vector>
+
+
+
+// 示例：[14:30:25][1234][myapp][main.cpp:100][INF0]  这是日志消息
 
 namespace mylog
 {
@@ -129,7 +134,7 @@ namespace mylog
         }
     };
 
-    // 其他内容
+    // 其他内容：保存普通文本（比如括号、冒号、空格等），不是特殊占位符的字符都需要它
     class OtherFormatItem : public FormatItem
     {
     public:
@@ -145,6 +150,42 @@ namespace mylog
         }
     private:
         std::string _str;
+    };
+
+
+
+    // %d：日期格式
+    // %t: 线程ID
+    // %c: 日志器名称
+    // %f: 文件名
+    // %l: 文件行号
+    // %p: 日志级别
+    // %T: 制表符缩进
+    // %m: 主题消息
+    // %n: 换行符
+    class Formatter
+    {
+    public:
+        // 组装说明书
+        Formatter(const std::string&pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")
+            : _pattern(pattern)
+        {
+
+        }
+
+        // 对msg进行格式化/组装输出
+        void format(std::ostream &out, LogMsg &msg);
+        std::string format(LogMsg &msg);
+
+        // 对格式化字符进行解析（拆解对象）
+        bool parsePattern();
+    private:
+        // 根据不同的格式化字符创建不同的格式化子项对象
+        FormatItem::ptr createItem(const std::string &key, const std::string &val);
+
+    private:
+        std::string _pattern;       // 格式化规则字符串
+        std::vector<FormatItem::ptr> _items;
     };
 }
 
