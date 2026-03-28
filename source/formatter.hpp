@@ -6,6 +6,8 @@
 #include <memory>
 #include <ctime>
 #include <vector>
+#include <cassert>
+#include <sstream>
 
 
 
@@ -170,18 +172,136 @@ namespace mylog
         Formatter(const std::string&pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")
             : _pattern(pattern)
         {
-
+            assert(parsePattern());
         }
 
         // 对msg进行格式化/组装输出
-        void format(std::ostream &out, LogMsg &msg);
-        std::string format(LogMsg &msg);
+        void format(std::ostream &out, LogMsg &msg)
+        {
+            for(auto& item : _items)
+            {
+                item->format(out, msg);
+            }
+        }
+        std::string format(LogMsg &msg)
+        {
+            std::stringstream ss;
+            format(ss, msg);
+            return ss.str();
+        }
+        
 
-        // 对格式化字符进行解析（拆解对象）
-        bool parsePattern();
+        // 解析格式模板字符串，把每个"零部件"拆出来
+        bool parsePattern()
+        {
+            // 存放解析结果：key=占位符(如d/t/p), val=普通文本或子参数(如{H:M:S})
+            std::vector<std::pair<std::string, std::string>> fmt_order;
+            size_t pos = 0;
+            std::string key, val;  // 临时存放当前正在处理的字符
+
+            while (pos < _pattern.size())
+            {
+                char ch = _pattern[pos];
+
+                // 情况1：普通字符（不是%）
+                if (ch != '%')
+                {
+                    val.push_back(ch);
+                    pos++;
+                    continue;
+                }
+
+                // 情况2：%% 转义，代表输出一个真实的 %
+                if (pos + 1 < _pattern.size() && _pattern[pos + 1] == '%')
+                {
+                    val.push_back('%');
+                    pos += 2;
+                    continue;
+                }
+
+                // 情况3：%后面是格式化占位符（如%d, %p, %m）
+                // 先把之前积累的普通字符保存（如果有的话）
+                if (!val.empty())
+                {
+                    fmt_order.push_back({"", val});  // key为空表示普通文本
+                    val.clear();
+                }
+
+                pos++;  // 跳过 %，现在指向格式化字符
+
+                // % 后面没有字符了，报错
+                if (pos >= _pattern.size())
+                {
+                    std::cout << "% 后面没有格式化字符!\n";
+                    return false;
+                }
+
+                // 读取格式化字符（如 d, t, p）
+                key = _pattern[pos];
+                pos++;
+
+                // 读取可选的子参数，如 %d{H:M:S} 中的 H:M:S
+                if (pos < _pattern.size() && _pattern[pos] == '{')
+                {
+                    pos++;  // 跳过 {
+                    while (pos < _pattern.size() && _pattern[pos] != '}')
+                    {
+                        val.push_back(_pattern[pos++]);
+                    }
+                    if (pos >= _pattern.size())
+                    {
+                        std::cout << "子参数 {} 没有闭合!\n";
+                        return false;
+                    }
+                    pos++;  // 跳过 }
+                }
+
+                // 保存这个占位符及其参数
+                fmt_order.push_back({key, val});
+                key.clear();
+                val.clear();
+            }
+
+            // 循环结束后，可能还有剩余的普通字符（如 "ab%cde" 最后剩余的 "de"）
+            if (!val.empty())
+            {
+                fmt_order.push_back({"", val});
+            }
+
+            // 根据解析结果，创建对应的 FormatItem 对象
+            for (auto &it : fmt_order)
+            {
+                _items.push_back(createItem(it.first, it.second));
+            }
+
+            return true;
+        }
+        
     private:
-        // 根据不同的格式化字符创建不同的格式化子项对象
-        FormatItem::ptr createItem(const std::string &key, const std::string &val);
+        // 根据不同的格式化字符创建不同的格式化子项对象（根据代号创建对应零部件工厂）
+        FormatItem::ptr createItem(const std::string &key, const std::string &val)
+        {
+            if(key == "d")
+                return std::make_shared<TimeFormatItem>(val);
+            if(key == "t")
+                return std::make_shared<ThreadFormatItem>();
+            if(key == "c")
+                return std::make_shared<LoggerFormatItem>();
+            if(key == "f")
+                return std::make_shared<FileFormatItem>();
+            if(key == "l")
+                return std::make_shared<LineFormatItem>();
+            if(key == "p")
+                return std::make_shared<LevelFormatItem>();
+            if(key == "T")
+                return std::make_shared<TabFormatItem>();
+            if(key == "m")
+                return std::make_shared<MsgFormatItem>();
+            if(key == "n")
+                return std::make_shared<NewLineFormatItem>();
+
+            return std::make_shared<OtherFormatItem>(val);
+        }
 
     private:
         std::string _pattern;       // 格式化规则字符串
