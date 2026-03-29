@@ -146,4 +146,16 @@ namespace mylog
         size_t _max_fsize;          // 记录当前文件的最大大小，当文件大小超过限度就要切换文件，写入另一个文件
         size_t _cur_fsize;          // 记录当前文件已经写入的大小
     };
+
+
+
+    template<typename SinkType, typename ...Args>
+    class SinkFactory
+    {
+    public:
+        static LogSink::ptr create(Args && ...agrs)
+        {
+            return std::make_shared<SinkType>(std::forward<Args>(agrs)...);
+        }
+    };
 }
