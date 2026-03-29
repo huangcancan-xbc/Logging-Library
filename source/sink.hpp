@@ -11,6 +11,10 @@
 #include "util.hpp"
 #include <memory>
 #include <fstream>
+#include <cassert>
+#include <sstream>
+#include <sys/time.h>   // gettimeofday
+
 
 
 namespace mylog
@@ -28,12 +32,21 @@ namespace mylog
 
 
 
+
+
     // 落地方向一：标准输出到屏幕
     class StdoutSink : public LogSink
     {
     public:
-        void log(const char *data, size_t len);
+        void log(const char *data, size_t len)
+        {
+            // 把内存里的数据原样吐出来，不格式化，不看\0 结束符
+            // 参数：数据地址、数据长度
+            std::cout.write(data, len);
+        }
     };
+
+
 
     // 落地方向二：指定文件
     class FileSink : public LogSink
@@ -43,14 +56,26 @@ namespace mylog
         FileSink(const std::string &pathname)
             : _pathname(pathname)
         {
+            // 1.创建日志文件所在路径
+            util::File::createDirectory(util::File::getPath(pathname));
 
+            // 2.创建并打开日志文件
+            _ofs.open(_pathname, std::ios::binary | std::ios::app);
+            assert(_ofs.is_open());
         }
 
-        void log(const char *data, size_t len);
+        void log(const char *data, size_t len)
+        {
+            std::cout.write(data, len);
+            assert(_ofs.good());    // 检查文件操作有没有出错
+        }
+
     private:
         std::string _pathname;          // 文件路径
         std::ofstream _ofs;
     };
+
+
 
     // 落地方向三：滚动文件（以大小进行滚动）
     // 当当前文件大小超过指定大小则创建并写入新的文件
@@ -58,14 +83,62 @@ namespace mylog
     {
     public:
         RollBySizeSink(const std::string &basename, size_t max_size)
+            : _basename(basename),
+            _max_fsize(max_size),
+            _cur_fsize(0)
         {
+            std::string filename = createNewFile();
+            // 1.创建日志文件所在路径
+            util::File::createDirectory(util::File::getPath(filename));
 
+            // 2.创建并打开日志文件
+            _ofs.open(filename, std::ios::binary | std::ios::app);
+            assert(_ofs.is_open());
         }
 
-        void log(const char *data, size_t len);
+        void log(const char *data, size_t len)
+        {
+            // 先判断文件不能继续写入
+            if(_cur_fsize >= _max_fsize)
+            {
+                _ofs.close();               // 先关闭当前文件！
+                std::string pathname = createNewFile();
+                _cur_fsize = 0;             // 将当前文件大小置为0
+                _ofs.open(pathname, std::ios::binary | std::ios::app);
+                assert(_ofs.is_open());
+            }
+
+            std::cout.write(data, len);
+            assert(_ofs.good());    // 检查文件操作有没有出错
+        }
 
     private:
-        void createNewFile();       // 进行大小判断，超过最大大小则创建新文件
+        std::string createNewFile()        // 进行大小判断，超过最大大小则创建新文件
+        {
+            time_t t = util::Date::now();  // 获取系统时间
+
+            // localtime_r能将时间戳分解成年、月、日、时、分、秒等（线程安全）
+            // 参数：指向time_t时间戳的指针、struct tm 结构体，成功返回struct tm 结构体指针，失败为nullptr
+            struct tm lt;
+            localtime_r(&t, &lt);
+
+            // struct timeval tv;                               // timeval：包含秒和微秒
+            // gettimeofday(&tv, nullptr);                      // 系统调用：获取当前时间（精确到微秒）
+
+            std::stringstream filename;     // 创建一个流用于存放以时间格式的日志文件名
+            // 这里在思考是用宏、私有变量还是就这样，先放着吧，感觉改起来虽然要改7处，但是自定义程度高
+            filename << _basename << "-";
+            filename << lt.tm_year + 1900 << "-";       // 年：tm_year 从 1900 开始计数
+            filename << lt.tm_mon + 1 << "-";           // 月：tm_mon 从 0 开始，0 表示 1 月
+            filename << lt.tm_mday << "-";
+            filename << lt.tm_hour << "-";
+            filename << lt.tm_min << "-";
+            filename << lt.tm_sec << "-";
+            // filename << tv.tv_usec;                  // 微秒部分，取自 gettimeofday
+            filename << ".log";
+
+            return filename.str();
+        }
 
     private:
         std::string _basename;      // 输出当前文件名，格式：基础文件名+扩展文件名（用时间生成）的组合
