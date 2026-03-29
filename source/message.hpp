@@ -23,6 +23,7 @@ namespace mylog
         std::string _logger;        // 日志器名称
 
 
+        // 参数：日志等级、代码文件名、行号、日志正文、日志器名字
         LogMsg(LogLevel::value level, const std::string file, size_t line, const std::string msg, const std::string logger)
             : _ctime(util::Date::now()),
             _level(level),
