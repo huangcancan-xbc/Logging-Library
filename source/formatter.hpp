@@ -168,6 +168,8 @@ namespace mylog
     class Formatter
     {
     public:
+        using ptr = std::shared_ptr<Formatter>;
+        
         // 组装说明书
         Formatter(const std::string&pattern = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")
             : _pattern(pattern)
