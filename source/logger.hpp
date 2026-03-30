@@ -248,17 +248,53 @@ namespace mylog
 
 
     // 建造者基类：用链式调用组装日志器，避免用户手动传一堆参数
+    // 用法示例：
+    //   LocalLoggerBuilder builder;
+    //   builder.buildLoggerName("myapp");
+    //   builder.buildLoggerLevel(LogLevel::value::DEBUG);
+    //   builder.buildFormatter("[%d{%H:%M:%S}][%p]%m%n");
+    //   builder.buildSink<StdoutSink>();
+    //   builder.buildSink<FileSink>("./logs/app.log");
+    //   builder.build();  // 返回日志器
     class LoggerBuilder
     {
     public:
-        void buildLoggerType(LoggerType type);          // 设置同步/异步
-        void buildLoggerName(const std::string &name);  // 设置日志器名字
-        void buildLoggerLevel(LogLevel::value level);   // 设置最低输出级别
-        void buildFormatter(const std::string &patten); // 设置日志格式模板
+        LoggerBuilder()
+            : _logger_type(LoggerType::LOGGER_ASYNC),
+            _limit_level(LogLevel::value::DEBUG)
+        {
+            
+        }
+
+        void buildLoggerType(LoggerType type)           // 设置同步/异步
+        {
+            _logger_type = type;
+        }
+
+        void buildLoggerName(const std::string &name)   // 设置日志器名字
+        {
+            _logger_name = name;
+        }
+
+        void buildLoggerLevel(LogLevel::value level)    // 设置最低输出级别
+        {
+            _limit_level = level;
+        }
+
+        void buildFormatter(const std::string &patten)  // 设置日志格式模板
+        {
+            _formatter = std::make_shared<Formatter>(patten);
+        }
+
         // 添加输出目标（可多次调用，同时写多个地方）
         // 例如：buildSink<StdoutSink>() 或 buildSink<FileSink>("./app.log")
         template <typename SinkType, typename... Args>
-        void buildSink(Args &&...args);
+        void buildSink(Args &&...args)
+        {
+            LogSink::ptr psink = SinkFactory::create<SinkType>(std::forward<Args>(args)...);
+            _sinks.push_back(psink);
+        }
+
         virtual Logger::ptr build() = 0;                // 最终构建出日志器对象
 
     protected:
@@ -274,6 +310,25 @@ namespace mylog
     class LocalLoggerBuilder : public LoggerBuilder
     {
     public:
-        Logger::ptr build() override;
+        Logger::ptr build() override
+        {
+            assert(_logger_name.empty());               // 必须要有日志器名称
+            if(_formatter.get() == nullptr)
+            {
+                _formatter = std::make_shared<Formatter>();
+            }
+
+            if(_sinks.empty())
+            {
+                buildSink<StdoutSink>();
+            }
+
+            if(_logger_type == LoggerType::LOGGER_ASYNC)
+            {
+                // to do...
+            }
+
+            return std::make_shared<SyncLogger>(_logger_name, _limit_level, _formatter, _sinks);
+        }
     };
 }
