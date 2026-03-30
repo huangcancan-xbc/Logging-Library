@@ -9,17 +9,17 @@
 
 void test1()
 {
-    mylog::LogMsg msg(mylog::LogLevel::value::DEBUG, "test.cc", 99, "测试日志正常输出到时间滚动文件", "Rolling Time");
+    mylog::LogMsg msg(mylog::LogLevel::value::DEBUG, "test.cc", 99, "测试日志正常输出到时间滚动文件", "Rolling Time Minute");
     mylog::Formatter fmt;
     std::string str = fmt.format(msg);
 
     // 创建时间滚动文件
-    mylog::RollBySizeSink::ptr RollingTime_log = mylog::SinkFactory::create<RollByTimeSink>("./RollingTime/log", TimeGap::GAP_SECOUND);
+    mylog::RollBySizeSink::ptr RollingTime_log = mylog::SinkFactory::create<RollByTimeSink>("./minute/log", TimeGap::GAP_MINUTE);
     time_t old = mylog::util::Date::now();
-    while(mylog::util::Date::now() < old + 5)
+    while(mylog::util::Date::now() < old + 180)
     {
         RollingTime_log->log(str.c_str(), str.size());
-        usleep(100000);
+        sleep(10);
     }
 }
 

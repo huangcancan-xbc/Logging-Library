@@ -1,6 +1,6 @@
-// 扩展：用时间来实现滚动文件（每隔xx的时间就切换文件）
-// 以当前系统时间，取模时间段大小，可以得到当前时间段是第几个时间段
-// 每次以当前系统时间取模，判断与当前文件的时间段是否一致，不一致代表不是同一个时间段
+// 扩展：基于时间的滚动文件实现（每隔指定时间段自动切换文件）
+// 通过系统时间对时间段大小取模，确定当前属于哪个时间片段
+// 在写入日志前，用当前时间取模判断是否超出当前时间段，如果超出就切换到新文件
 
 #pragma once
 #include "../../source/sink.hpp"
@@ -28,56 +28,58 @@ public:
             case TimeGap::GAP_DAY:_gap_size = 3600 * 24; break;
         }
 
-        _cur_gap = _gap_size == 1 ? mylog::util::Date::now() : mylog::util::Date::now() % _gap_size;
+        _cur_gap = _gap_size == 1 ? mylog::util::Date::now() : mylog::util::Date::now() / _gap_size; // 获取初始时间段的标识值，用于后续比较判断
 
-        std::string filename = createNewFile();
-        mylog::util::File::createDirectory(mylog::util::File::getPath(filename));
-        _ofs.open(filename, std::ios::binary | std::ios::app);
+        std::string filename = createNewFile();                                     // 创建日志文件并设置初始文件路径
+        mylog::util::File::createDirectory(mylog::util::File::getPath(filename));   // 确保日志文件所在目录存在
+        _ofs.open(filename, std::ios::binary | std::ios::app);                      // 以追加模式打开文件
         assert(_ofs.is_open());
     }
 
-    // 判断当前时间是否是当前文件的时间段，不是就切换文件
+    // 检查当前时间是否仍在当前时间段内，若不在则切换到新文件
     void log(const char *data, size_t len)
     {
-        time_t cur = mylog::util::Date::now();
-        if((cur % _gap_size) != _cur_gap)
+        time_t cur = mylog::util::Date::now();  // 获取当前时间戳
+        
+        if((cur / _gap_size) != _cur_gap)       // 判断当前时间是否超出当前时间段
         {
-            _ofs.close();               // 先关闭当前文件！
+            _cur_gap = cur / _gap_size;          // 更新当前时间段标识
+            _ofs.close();                        // 关闭当前文件，准备切换
             std::string pathname = createNewFile();
             _ofs.open(pathname, std::ios::binary | std::ios::app);
             assert(_ofs.is_open());
         }
 
         _ofs.write(data, len);
-        assert(_ofs.good());            // 检查文件操作有没有出错
+        assert(_ofs.good());                    // 检查文件写入是否成功
     }
 
 private:
-    std::string createNewFile()         // 进行大小判断，超过最大大小则创建新文件
+    std::string createNewFile()                 // 根据当前系统时间生成新的日志文件名
     {
-        time_t t = mylog::util::Date::now();   // 获取系统时间
+        time_t t = mylog::util::Date::now();    // 获取当前时间戳
 
-        // localtime_r能将时间戳分解成年、月、日、时、分、秒等（线程安全）
-        // 参数：指向time_t时间戳的指针、struct tm 结构体，成功返回struct tm 结构体指针，失败为nullptr
+        // 将时间戳分解为年、月、日、时、分、秒等时间信息（线程安全）
         struct tm lt;
         localtime_r(&t, &lt);
 
-        std::stringstream filename;     // 创建一个流用于存放以时间格式的日志文件名
+        // 构建带时间戳的日志文件名
+        std::stringstream filename;
         filename << _basename << "_";
         filename << lt.tm_year + 1900 << "-";       // 年：tm_year 从 1900 开始计数
-        filename << std::setfill('0') << std::setw(2) << (lt.tm_mon + 1) << "-";           // 月：tm_mon 从 0 开始，0 表示 1 月
+        filename << std::setfill('0') << std::setw(2) << (lt.tm_mon + 1) << "-";    // 月：tm_mon 从 0 开始，0 表示 1 月
         filename << lt.tm_mday << " ";
         filename << lt.tm_hour << ":";
         filename << lt.tm_min << ":";
-        filename << lt.tm_sec << "-";
+        filename << lt.tm_sec;
         filename << ".log";
 
         return filename.str();
     }
 
 private:
-    std::string _basename;      // 输出当前文件名，格式：基础文件名+扩展文件名（用时间生成）的组合
+    std::string _basename;      // 日志文件的基础名称
     std::ofstream _ofs;         // 输出文件流
-    size_t _cur_gap;            // 当前是第几个时间段
-    size_t _gap_size;           // 时间段的大小
+    size_t _cur_gap;            // 当前处于的连续时间段计数
+    size_t _gap_size;           // 设置的时间滚动间隔时长（单位：秒）
 };
