@@ -1,0 +1,3 @@
+[2026-03-30 21:29:59][139654553806656][file_logger][test.cc:37][DEBUG]	debug test
+[2026-03-30 21:29:59][139654553806656][file_logger][test.cc:38][INFO]	info test
+[2026-03-30 21:29:59][139654553806656][file_logger][test.cc:39][WARN]	warn test

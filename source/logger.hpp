@@ -281,7 +281,7 @@ namespace mylog
             _limit_level = level;
         }
 
-        void buildFormatter(const std::string &patten)  // 设置日志格式模板
+        void buildFormatter(const std::string &patten = "[%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n")  // 设置日志格式模板，不传则用默认
         {
             _formatter = std::make_shared<Formatter>(patten);
         }
@@ -312,7 +312,7 @@ namespace mylog
     public:
         Logger::ptr build() override
         {
-            assert(_logger_name.empty());               // 必须要有日志器名称
+            assert(_logger_name.empty() == false);               // 必须要有日志器名称
             if(_formatter.get() == nullptr)
             {
                 _formatter = std::make_shared<Formatter>();
