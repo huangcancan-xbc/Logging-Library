@@ -234,4 +234,46 @@ namespace mylog
             }
         }
     };
+
+
+
+
+
+    // 日志器类型：同步还是异步
+    enum class LoggerType
+    {
+        LOGGER_SYNC,    // 同步
+        LOGGER_ASYNC    // 异步
+    };
+
+
+    // 建造者基类：用链式调用组装日志器，避免用户手动传一堆参数
+    class LoggerBuilder
+    {
+    public:
+        void buildLoggerType(LoggerType type);          // 设置同步/异步
+        void buildLoggerName(const std::string &name);  // 设置日志器名字
+        void buildLoggerLevel(LogLevel::value level);   // 设置最低输出级别
+        void buildFormatter(const std::string &patten); // 设置日志格式模板
+        // 添加输出目标（可多次调用，同时写多个地方）
+        // 例如：buildSink<StdoutSink>() 或 buildSink<FileSink>("./app.log")
+        template <typename SinkType, typename... Args>
+        void buildSink(Args &&...args);
+        virtual Logger::ptr build() = 0;                // 最终构建出日志器对象
+
+    protected:
+        LoggerType _logger_type;                        // 同步 or 异步
+        std::string _logger_name;                       // 日志器名字（会出现在日志内容里）
+        std::atomic<LogLevel::value> _limit_level;      // 低于这个级别的日志不输出
+        Formatter::ptr _formatter;                      // 格式化器
+        std::vector<LogSink::ptr> _sinks;               // 输出目标列表（屏幕、文件、滚动文件）
+    };
+
+
+    // 局部日志器建造者：返回日志器对象，调用者自己管理生命周期
+    class LocalLoggerBuilder : public LoggerBuilder
+    {
+    public:
+        Logger::ptr build() override;
+    };
 }
