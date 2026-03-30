@@ -24,6 +24,7 @@ namespace mylog
     public:
         using ptr = std::shared_ptr<Logger>;
 
+        // 参数：日志器名字、日志等级限制、格式化器、管理日志落地的数组
         Logger(const std::string &logger_name, LogLevel::value level, Formatter::ptr &formatter, std::vector<LogSink::ptr> &sinks)
             : _logger_name(logger_name),
             _limit_level(level),
@@ -57,9 +58,136 @@ namespace mylog
             va_end(ap);
 
 
-            // 3.构造LogMsg对象
-            // 参数：日志等级、代码文件名、行号、日志正文、日志器名字
-            LogMsg msg(LogLevel::value::DEBUG, file, line, res, _logger_name);
+            // // 3.构造LogMsg对象
+            // // 参数：日志等级、代码文件名、行号、日志正文、日志器名字
+            // LogMsg msg(LogLevel::value::DEBUG, file, line, res, _logger_name);
+
+
+            // // 4.通过格式化工具对LogMsg进行格式化，得到格式化后的字符串
+            // std::stringstream ss;
+            // _formatter->format(ss, msg);
+
+
+            // // 5.进行日志落地
+            // log(ss.str().c_str(), ss.str().size());
+            // free(res);
+
+
+            // 将上述3步进行封装，避免代码冗余
+            serialize(LogLevel::value::DEBUG, file, line, res);
+            free(res);
+        }
+
+
+        void info(const std::string &file, size_t line, const std::string &fmt, ...)
+        {
+            if(LogLevel::value::INFO < _limit_level)
+            {
+                return;
+            }
+
+
+            va_list ap;             // 定义一个变量，用来访问可变参数（我的理解是指针/句柄，官方解释叫游标）
+            va_start(ap, fmt);      // 可变参数前一个参数
+            char *res;
+            int ret = vasprintf(&res, fmt.c_str(), ap); // Prerequisites/1.不定参宏函数的使用.cc ： 106-124
+            if(ret == -1)
+            {
+                std::cout << "vasprintf failed!\n";
+            }
+            va_end(ap);
+
+
+            serialize(LogLevel::value::INFO, file, line, res);
+
+            free(res);
+        }
+
+
+        void warn(const std::string &file, size_t line, const std::string &fmt, ...)
+        {
+            if(LogLevel::value::WARN < _limit_level)
+            {
+                return;
+            }
+
+
+            va_list ap;             // 定义一个变量，用来访问可变参数（我的理解是指针/句柄，官方解释叫游标）
+            va_start(ap, fmt);      // 可变参数前一个参数
+            char *res;
+            int ret = vasprintf(&res, fmt.c_str(), ap); // Prerequisites/1.不定参宏函数的使用.cc ： 106-124
+            if(ret == -1)
+            {
+                std::cout << "vasprintf failed!\n";
+            }
+            va_end(ap);
+
+
+            serialize(LogLevel::value::WARN, file, line, res);
+
+            free(res);
+
+        }
+
+
+        void error(const std::string &file, size_t line, const std::string &fmt, ...)
+        {
+            if(LogLevel::value::ERROR < _limit_level)
+            {
+                return;
+            }
+
+
+            va_list ap;             // 定义一个变量，用来访问可变参数（我的理解是指针/句柄，官方解释叫游标）
+            va_start(ap, fmt);      // 可变参数前一个参数
+            char *res;
+            int ret = vasprintf(&res, fmt.c_str(), ap); // Prerequisites/1.不定参宏函数的使用.cc ： 106-124
+            if(ret == -1)
+            {
+                std::cout << "vasprintf failed!\n";
+            }
+            va_end(ap);
+
+
+            serialize(LogLevel::value::ERROR, file, line, res);
+
+            free(res);
+
+        }
+
+
+        void fatal(const std::string &file, size_t line, const std::string &fmt, ...)
+        {
+            if(LogLevel::value::FATAL < _limit_level)
+            {
+                return;
+            }
+
+
+            va_list ap;             // 定义一个变量，用来访问可变参数（我的理解是指针/句柄，官方解释叫游标）
+            va_start(ap, fmt);      // 可变参数前一个参数
+            char *res;
+            int ret = vasprintf(&res, fmt.c_str(), ap); // Prerequisites/1.不定参宏函数的使用.cc ： 106-124
+            if(ret == -1)
+            {
+                std::cout << "vasprintf failed!\n";
+            }
+            va_end(ap);
+
+
+            serialize(LogLevel::value::FATAL, file, line, res);
+
+            free(res);
+
+        }
+    
+    protected:
+        // 控制日志怎么写出去
+        virtual void log(const char *data, size_t len) = 0;
+
+        void serialize(LogLevel::value level, const std::string &file, size_t line, const char* str)
+        {
+            LogMsg msg(LogLevel::value::DEBUG, file, line, str, _logger_name);
 
 
             // 4.通过格式化工具对LogMsg进行格式化，得到格式化后的字符串
@@ -69,16 +197,7 @@ namespace mylog
 
             // 5.进行日志落地
             log(ss.str().c_str(), ss.str().size());
-            free(res);
         }
-        void info(const std::string &file, size_t line, const std::string &fmt, ...);
-        void warn(const std::string &file, size_t line, const std::string &fmt, ...);
-        void error(const std::string &file, size_t line, const std::string &fmt, ...);
-        void fatal(const std::string &file, size_t line, const std::string &fmt, ...);
-    
-    protected:
-        // 控制日志怎么写出去
-        virtual void log(const char *data, size_t len) = 0;
 
     protected:
         std::mutex _mutex;
@@ -92,7 +211,27 @@ namespace mylog
     // 同步日志器
     class SyncLogger : public Logger
     {
+    public:
+        SyncLogger(const std::string &logger_name, LogLevel::value level, Formatter::ptr &formatter, std::vector<LogSink::ptr> &sinks)
+            : Logger(logger_name, level, formatter, sinks)
+        {
+
+        }
+        
     protected:
-        void log(const char *data, size_t len);
+        // 同步日志器，日志直接通过落地模块的句柄进行日志的落地
+        void log(const char *data, size_t len)
+        {
+            std::unique_lock<std::mutex> lock(_mutex);
+            if(_sinks.empty())
+            {
+                return;
+            }
+
+            for(auto &sink : _sinks)
+            {
+                sink->log(data, len);
+            }
+        }
     };
 }
