@@ -187,7 +187,7 @@ namespace mylog
 
         void serialize(LogLevel::value level, const std::string &file, size_t line, const char* str)
         {
-            LogMsg msg(LogLevel::value::DEBUG, file, line, str, _logger_name);
+            LogMsg msg(level, file, line, str, _logger_name);
 
 
             // 4.通过格式化工具对LogMsg进行格式化，得到格式化后的字符串
@@ -217,7 +217,7 @@ namespace mylog
         {
 
         }
-        
+
     protected:
         // 同步日志器，日志直接通过落地模块的句柄进行日志的落地
         void log(const char *data, size_t len)

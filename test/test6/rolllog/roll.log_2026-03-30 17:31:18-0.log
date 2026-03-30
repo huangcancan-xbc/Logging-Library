@@ -1,0 +1,12 @@
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:39][DEBUG]	debug test
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:40][INFO]	info test
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:41][WARN]	warn test
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:42][ERROR]	error test
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:43][FATAL]	fatal test
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:50][ERROR]	【error : rollfile】- 0
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:50][ERROR]	【error : rollfile】- 1
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:50][ERROR]	【error : rollfile】- 2
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:50][ERROR]	【error : rollfile】- 3
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:50][ERROR]	【error : rollfile】- 4
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:50][ERROR]	【error : rollfile】- 5
+[2026-03-30 17:31:18][125984137889600][sync_logger][test.cc:50][ERROR]	【error : rollfile】- 6
