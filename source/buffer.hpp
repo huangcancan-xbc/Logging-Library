@@ -10,6 +10,9 @@
 
 #include "util.hpp"
 #include <vector>
+#include <cassert>
+
+
 
 namespace mylog
 {
@@ -34,10 +37,10 @@ namespace mylog
         {
             // 缓冲区剩余空间不足的处理（2种思路）
             // a.固定大小，直接返回
-            if(len > writeAbleSize())
-            {
-                return;
-            }
+            // if(len > writeAbleSize())
+            // {
+            //     return;
+            // }
             // b.直接扩容
             SufficientSpaceSize(len);
 
@@ -48,17 +51,54 @@ namespace mylog
             moveWriter(len);
         }
 
-        const char* begin();                        // 返回可读数据的起始地址
-        size_t readAbleSize();                      // 返回可读数据的长度
-        size_t writeAbleSize();                     // 返回可写数据长度
-        void reset();                               // 重置读写位置，初始化缓冲区
-        void swap(const Buffer &buffer);            // 对缓冲区实现交换
-        bool empty();                               // 判断缓冲区是否为空
-    
-    private:
-        void moveWriter(size_t len);                // 写指针后移
+        const char* begin()                         // 返回可读数据的起始地址
+        {
+            return &_buffer[_reader_idx];
+        }
 
-        void SufficientSpaceSize(size_t len)
+        size_t readAbleSize()                       // 返回可读数据的长度
+        {
+            return (_writer_idx - _reader_idx);
+        }
+
+        size_t writeAbleSize()                      // 返回可写数据长度
+        {
+            return (_buffer.size() - _writer_idx);
+        }
+
+        void reset()                                // 重置读写位置，初始化缓冲区
+        {
+            _reader_idx = 0;
+            _writer_idx = 0;
+        }
+
+        void swap(Buffer &buffer)                   // 对缓冲区实现交换
+        {
+            _buffer.swap(buffer._buffer);
+            std::swap(_reader_idx, buffer._reader_idx);
+            std::swap(_writer_idx, buffer._writer_idx);
+        }
+
+        bool empty()                                // 判断缓冲区是否为空
+        {
+            return (_reader_idx == _writer_idx);
+        }
+
+    private:
+        void moveReader(size_t len)                 // 读指针后移
+        {
+            assert(len < readAbleSize());
+            _reader_idx += len;
+        }
+
+        void moveWriter(size_t len)                 // 写指针后移
+        {
+            assert(len <= writeAbleSize());
+            // assert(len + _writer_idx <= _buffer.size());
+            _writer_idx += len;
+        }
+
+        void SufficientSpaceSize(size_t len)        // 扩容足够空间大小
         {
             if(len < writeAbleSize())
             {
