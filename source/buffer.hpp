@@ -13,20 +13,70 @@
 
 namespace mylog
 {
+    // 默认缓冲区大小：100MB
+    #define DEFAULT_BUFFER_SIZE (100 * 1024 * 1024)
+
+    #define THRESHOLD_BUFFER_SIZE (80 * 1024 * 1024)    // 缓冲区阈值大小
+    #define LINEAR_BUFFER_SIZE (10 * 1024 * 1024)       // 当超过缓冲区阈值就线性增长空间
+
     class Buffer
     {
     public:
-        Buffer();
+        Buffer()
+            : _buffer(DEFAULT_BUFFER_SIZE),
+            _reader_idx(0), _writer_idx(0)
+        {
+            
+        }
 
-        void push(const char *data, size_t len);    // 向缓冲区写入数据
+
+        void push(const char *data, size_t len)     // 向缓冲区写入数据
+        {
+            // 缓冲区剩余空间不足的处理（2种思路）
+            // a.固定大小，直接返回
+            if(len > writeAbleSize())
+            {
+                return;
+            }
+            // b.直接扩容
+            SufficientSpaceSize(len);
+
+            // 1.把数据拷贝到缓冲区：std::copy(首, 尾, 目标)
+            std::copy(data, data + len, &_buffer[_writer_idx]);
+
+            // 2.写指针后移
+            moveWriter(len);
+        }
+
         const char* begin();                        // 返回可读数据的起始地址
         size_t readAbleSize();                      // 返回可读数据的长度
+        size_t writeAbleSize();                     // 返回可写数据长度
         void reset();                               // 重置读写位置，初始化缓冲区
         void swap(const Buffer &buffer);            // 对缓冲区实现交换
         bool empty();                               // 判断缓冲区是否为空
     
     private:
-        void moveReader(size_t len);
+        void moveWriter(size_t len);                // 写指针后移
+
+        void SufficientSpaceSize(size_t len)
+        {
+            if(len < writeAbleSize())
+            {
+                return;     // 空间足够不扩容
+            }
+
+            size_t new_size = 0;
+            if (_buffer.size() < THRESHOLD_BUFFER_SIZE)
+            {
+                new_size = _buffer.size() * 2;      // 当缓冲区空间小于阈值时2倍扩容
+            }
+            else
+            {
+                new_size = _buffer.size() + LINEAR_BUFFER_SIZE;     // 当缓冲区空间超过阈值线性扩容
+            }
+
+            _buffer.resize(new_size);
+        }
 
     private:
         // 设计：直接存放格式化后的字符串，避免LogMsg对象频繁构造
