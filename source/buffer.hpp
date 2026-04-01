@@ -83,13 +83,14 @@ namespace mylog
         {
             return (_reader_idx == _writer_idx);
         }
-
-    private:
+        
         void moveReader(size_t len)                 // 读指针后移
         {
-            assert(len < readAbleSize());
+            assert(len <= readAbleSize());
             _reader_idx += len;
         }
+
+    private:
 
         void moveWriter(size_t len)                 // 写指针后移
         {
@@ -100,19 +101,21 @@ namespace mylog
 
         void SufficientSpaceSize(size_t len)        // 扩容足够空间大小
         {
-            if(len < writeAbleSize())
+            if(len <= writeAbleSize())
             {
                 return;     // 空间足够不扩容
             }
 
             size_t new_size = 0;
+
+            // 加上len主要是防止日志信息过于庞大，导致扩容了还不够的情况
             if (_buffer.size() < THRESHOLD_BUFFER_SIZE)
             {
-                new_size = _buffer.size() * 2;      // 当缓冲区空间小于阈值时2倍扩容
+                new_size = _buffer.size() * 2 + len;      // 当缓冲区空间小于阈值时2倍扩容
             }
             else
             {
-                new_size = _buffer.size() + LINEAR_BUFFER_SIZE;     // 当缓冲区空间超过阈值线性扩容
+                new_size = _buffer.size() + LINEAR_BUFFER_SIZE + len;     // 当缓冲区空间超过阈值线性扩容
             }
 
             _buffer.resize(new_size);
