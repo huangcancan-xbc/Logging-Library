@@ -18,16 +18,24 @@ namespace mylog
     // 回调：接收一个 Buffer 自行处理
     using Function = std::function<void(Buffer &)>;
 
+    enum class AsyncType
+    {
+        ASYNC_SAFE,   // 安全状态，缓冲区满了就阻塞，能够避免资源耗尽
+        ASYNC_UNSAFE, // 不安全状态，缓冲区空间不够就扩容，用于压力测试（生产者永不阻塞！）
+    };
+
+
     // 双缓冲生产者-消费者模型，读写分离减少锁竞争
     class AsyncLooper
     {
     public:
         using ptr = std::shared_ptr<AsyncLooper>;
 
-        AsyncLooper(Function &cb)   // 启动后台线程
-            : _stop(false),
-            _thread(std::thread(&AsyncLooper::threadEntry, this)),
-            _callBack(cb)
+        AsyncLooper(const Function &cb, AsyncType looper_type = AsyncType::ASYNC_SAFE)   // 启动后台线程
+            : _looper_type(looper_type),
+            _callBack(cb),
+            _stop(false),
+            _thread(std::thread(&AsyncLooper::threadEntry, this))
         {
 
         }
@@ -45,10 +53,15 @@ namespace mylog
             // b.无限扩容：空间不够就让buffer自动扩容，生产者不阻塞
             std::unique_lock<std::mutex> lock(_mutex);          // 1.加锁
 
-            // wait：让线程睡觉，等条件成立再继续（解锁 + 睡觉 + 被唤醒 + 重新加锁）
-            // 参数：锁（必须unique_lock！）、一个返回bool的东西（即什么时候可以继续往下走？）
-            _cond_pro.wait(lock, [&]()
-                { return len <= _pro_buf.writeAbleSize(); });   // 2.等可写空间
+            // 安全：空间不够->睡觉等->要唤醒
+            // 不安全：空间不够->buffer自动扩容->不睡觉->不需要通知生产者
+            if (_looper_type == AsyncType::ASYNC_SAFE)
+            {
+                // wait：让线程睡觉，等条件成立再继续（解锁 + 睡觉 + 被唤醒 + 重新加锁）
+                // 参数：锁（必须unique_lock！）、一个返回bool的东西（即什么时候可以继续往下走？）
+                _cond_pro.wait(lock, [&]()
+                               { return len <= _pro_buf.writeAbleSize(); }); // 2.等可写空间
+            }
 
             _pro_buf.push(data, len);                           // 3.写数据
             _cond_con.notify_one();                             // 4.通知/唤醒消费者对缓冲区数据进行处理
@@ -65,7 +78,11 @@ namespace mylog
                     _cond_con.wait(lock, [&]()
                                    { return (_stop || !_pro_buf.empty()); });    // 2.等有数据
                     _con_buf.swap(_pro_buf);                    // 3.交换缓冲区
-                    _cond_pro.notify_all();                     // 4.通知生产者
+
+                    if (_looper_type == AsyncType::ASYNC_SAFE)
+                    {
+                        _cond_pro.notify_all();                     // 4.通知生产者
+                    }
                 }
 
                 _callBack(_con_buf);                            // 5.处理数据
@@ -74,6 +91,7 @@ namespace mylog
         }
 
     private:
+        AsyncType _looper_type;     // 缓冲区策略：阻塞 or 扩容
         bool _stop;                 // 停止标志：true表示退出，false表示正常运行
         Buffer _pro_buf;            // 生产者缓冲（业务线程写）
         Buffer _con_buf;            // 消费者缓冲（后台线程读）
