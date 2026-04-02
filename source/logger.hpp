@@ -5,15 +5,19 @@
 //   2. 用 Formatter 把 LogMsg 格式化成一串字符串（比如 "[14:30:25][INFO] 用户登录"）
 //   3. 调用 log() 函数把字符串写出去（写到屏幕、文件、或者按时间/大小切割的文件）
 
+// 普通日志器（SyncLogger）：收到日志→立刻写文件→写完才返回（要等）
+// 异步日志器（AsyncLogger）：收到日志→扔进缓冲区就跑→后台线程慢慢写文件（不用等）
 
 
 #include "util.hpp"
 #include "level.hpp"
 #include "formatter.hpp"
 #include "sink.hpp"
+#include "looper.hpp"
 #include <atomic>
 #include <mutex>
 #include <cstdarg>
+
 
 
 namespace mylog
@@ -233,6 +237,26 @@ namespace mylog
                 sink->log(data, len);
             }
         }
+    };
+
+
+    // 异步工作器
+    class AsyncLogger : public Logger
+    {
+    public:
+        AsyncLogger(const std::string &logger_name, LogLevel::value level, Formatter::ptr &formatter, std::vector<LogSink::ptr> &sinks)
+            : Logger(logger_name, level, formatter, sinks)
+        {
+            
+        }
+
+        void log(const char *data, size_t len);     // 把数据写入_looper的缓冲区,立刻返回，不写文件、不阻塞、不等待
+        
+        // 接收一个装满日志的缓冲区buf(由后台线程自动传过来)，把缓冲区里的数据真正写到文件/屏幕(调用_sinks)
+        void realLog(Buffer &buf);                  // 设计实际落地函数，即把缓冲区的数据落地
+
+    private:
+        AsyncLooper::ptr _looper;
     };
 
 
