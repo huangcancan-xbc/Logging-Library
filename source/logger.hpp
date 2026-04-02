@@ -244,16 +244,33 @@ namespace mylog
     class AsyncLogger : public Logger
     {
     public:
-        AsyncLogger(const std::string &logger_name, LogLevel::value level, Formatter::ptr &formatter, std::vector<LogSink::ptr> &sinks)
-            : Logger(logger_name, level, formatter, sinks)
+        AsyncLogger(const std::string &logger_name, LogLevel::value level, Formatter::ptr &formatter, 
+            std::vector<LogSink::ptr> &sinks, AsyncType looper_type)
+            : Logger(logger_name, level, formatter, sinks),
+            _looper(std::make_shared<AsyncLooper>(std::bind(&AsyncLogger::realLog, this, std::placeholders::_1), looper_type))
         {
             
         }
 
-        void log(const char *data, size_t len);     // 把数据写入_looper的缓冲区,立刻返回，不写文件、不阻塞、不等待
-        
+        void log(const char *data, size_t len) override     // 把数据写入_looper的缓冲区,立刻返回，不写文件、不阻塞、不等待
+        {
+            _looper->push(data, len);
+        }
+
+    private:
         // 接收一个装满日志的缓冲区buf(由后台线程自动传过来)，把缓冲区里的数据真正写到文件/屏幕(调用_sinks)
-        void realLog(Buffer &buf);                  // 设计实际落地函数，即把缓冲区的数据落地
+        void realLog(Buffer &buf)                   // 设计实际落地函数，即把缓冲区的数据落地
+        {
+            if(_sinks.empty())
+            {
+                return;
+            }
+
+            for(auto &sink : _sinks)
+            {
+                sink->log(buf.begin(), buf.readAbleSize());
+            }
+        }
 
     private:
         AsyncLooper::ptr _looper;
