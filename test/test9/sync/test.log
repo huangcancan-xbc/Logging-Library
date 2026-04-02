@@ -1,0 +1,6 @@
+[2026-04-02 22:43:18][131583695329088][sync_file_logger][test.cc:39][DEBUG]	debug test
+[2026-04-02 22:43:18][131583695329088][sync_file_logger][test.cc:40][INFO]	info test
+[2026-04-02 22:43:18][131583695329088][sync_file_logger][test.cc:41][WARN]	warn test
+[2026-04-02 22:45:07][134276333438784][sync_file_logger][test.cc:39][DEBUG]	debug test
+[2026-04-02 22:45:07][134276333438784][sync_file_logger][test.cc:40][INFO]	info test
+[2026-04-02 22:45:07][134276333438784][sync_file_logger][test.cc:41][WARN]	warn test

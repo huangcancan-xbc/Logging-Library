@@ -40,11 +40,19 @@ namespace mylog
 
         }
 
-        void stop()                 // 停止并等待线程退出
+        ~AsyncLooper()
         {
-            _stop = true;           // 告诉线程该停了
-            _cond_con.notify_all(); // 唤醒工作线程
-            _thread.join();
+            stop();
+        }
+
+        void stop()                     // 停止并等待线程退出
+        {
+            if (_thread.joinable())     // 看看现在能不能安全地调 join，不管线程到底跑没跑完
+            {
+                _stop = true;           // 告诉线程该停了
+                _cond_con.notify_all(); // 唤醒工作线程
+                _thread.join();
+            }
         }
 
         void push(const char* data, size_t len)                 // 业务线程写入数据
@@ -70,11 +78,18 @@ namespace mylog
     private:
         void threadEntry()          // 后台线程入口：消费数据并调用回调
         {
-            while(!_stop)
+            while(true)
             {
                 // 不对数据处理加锁保护，只对缓冲区交换加锁
                 {
                     std::unique_lock<std::mutex> lock(_mutex);  // 1.加锁
+
+                    // 退出的标志被设置并且缓冲区中没有数据了，这个时候再退出，否则缓冲区可能残留数据没处理就退出了
+                    if(_stop && _pro_buf.empty())
+                    {
+                        break;
+                    }
+
                     _cond_con.wait(lock, [&]()
                                    { return (_stop || !_pro_buf.empty()); });    // 2.等有数据
                     _con_buf.swap(_pro_buf);                    // 3.交换缓冲区

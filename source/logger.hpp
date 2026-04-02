@@ -224,7 +224,7 @@ namespace mylog
 
     protected:
         // 同步日志器，日志直接通过落地模块的句柄进行日志的落地
-        void log(const char *data, size_t len)
+        void log(const char *data, size_t len) override
         {
             std::unique_lock<std::mutex> lock(_mutex);
             if(_sinks.empty())

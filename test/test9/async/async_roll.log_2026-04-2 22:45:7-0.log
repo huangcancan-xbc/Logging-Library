@@ -1,0 +1,25 @@
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:117][WARN]	async warn
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:118][ERROR]	async error
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 0
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 1
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 2
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 3
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 4
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 5
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 6
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 7
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 8
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 9
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 10
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 11
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 12
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 13
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 14
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 15
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 16
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 17
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 18
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 19
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 20
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 21
+[22:45:07][134276333438784][async_multi_sink_logger][test.cc:123][ERROR]	roll test - 22
