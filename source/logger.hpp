@@ -302,7 +302,8 @@ namespace mylog
     public:
         LoggerBuilder()
             : _logger_type(LoggerType::LOGGER_ASYNC),
-            _limit_level(LogLevel::value::DEBUG)
+            _limit_level(LogLevel::value::DEBUG),
+            _looper_type(AsyncType::ASYNC_SAFE)
         {
             
         }
@@ -310,6 +311,11 @@ namespace mylog
         void buildLoggerType(LoggerType type)           // 设置同步/异步
         {
             _logger_type = type;
+        }
+
+        void buildEnableUnSafeAsync()                   // 设置非安全状态
+        {
+            _looper_type = AsyncType::ASYNC_UNSAFE;
         }
 
         void buildLoggerName(const std::string &name)   // 设置日志器名字
@@ -339,6 +345,7 @@ namespace mylog
         virtual Logger::ptr build() = 0;                // 最终构建出日志器对象
 
     protected:
+        AsyncType _looper_type;                         // 安全状态 or 非安全
         LoggerType _logger_type;                        // 同步 or 异步
         std::string _logger_name;                       // 日志器名字（会出现在日志内容里）
         std::atomic<LogLevel::value> _limit_level;      // 低于这个级别的日志不输出
@@ -366,7 +373,7 @@ namespace mylog
 
             if(_logger_type == LoggerType::LOGGER_ASYNC)
             {
-                // to do...
+                return std::make_shared<AsyncLogger>(_logger_name, _limit_level, _formatter, _sinks, _looper_type);
             }
 
             return std::make_shared<SyncLogger>(_logger_name, _limit_level, _formatter, _sinks);
