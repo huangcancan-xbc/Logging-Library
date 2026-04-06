@@ -379,4 +379,30 @@ namespace mylog
             return std::make_shared<SyncLogger>(_logger_name, _limit_level, _formatter, _sinks);
         }
     };
+
+
+
+
+
+    // 日志器管理器
+    class LoggerManager
+    {
+    public:
+        static LoggerManager &getInstance();                // 单例
+        void addLogger(Logger::ptr &logger);                // 添加日志器进行管理
+        bool hasLogger(const std::string &name);            // 判断是否管理了指定名称的日志器
+        Logger::ptr getLogger(const std::string &name);     // 获取指定名称的日志器
+        Logger::ptr rootLogger();                           // 获取默认日志器
+
+    private:
+        LoggerManager()
+        {
+
+        }
+
+    private:
+        std::mutex _mutex;
+        Logger::ptr _root_logger;           // 默认日志器
+        std::vector<Logger::ptr> _loggers;  // 所管理的日志器数组
+    };
 }
