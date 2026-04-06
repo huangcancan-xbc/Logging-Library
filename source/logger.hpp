@@ -17,6 +17,7 @@
 #include <atomic>
 #include <mutex>
 #include <cstdarg>
+#include <unordered_map>
 
 
 
@@ -37,7 +38,12 @@ namespace mylog
         {
             
         }
-            
+
+        // 获取日志器名称
+        const std::string & getName()
+        {
+            return _logger_name;
+        }
 
         // 创建 LogMsg -> 用 Formatter 格式化 -> 调 log() 写出去
         // 参数：文件名、行号、日志内容
@@ -388,21 +394,64 @@ namespace mylog
     class LoggerManager
     {
     public:
-        static LoggerManager &getInstance();                // 单例
-        void addLogger(Logger::ptr &logger);                // 添加日志器进行管理
-        bool hasLogger(const std::string &name);            // 判断是否管理了指定名称的日志器
-        Logger::ptr getLogger(const std::string &name);     // 获取指定名称的日志器
-        Logger::ptr rootLogger();                           // 获取默认日志器
+        static LoggerManager &getInstance()                 // 单例
+        {
+            static LoggerManager _instance;
+            return _instance;
+        }
+
+        void addLogger(Logger::ptr &logger)                 // 添加日志器进行管理
+        {
+            if(hasLogger(logger->getName()))
+            {
+                return;                                     // 如果日志器已经存在则直接返回
+            }
+
+            std::unique_lock<std::mutex> lock(_mutex);
+            _loggers.insert(std::make_pair(logger->getName(), logger));
+        }
+
+        bool hasLogger(const std::string &name)             // 判断是否管理了指定名称的日志器
+        {
+            std::unique_lock<std::mutex> lock(_mutex);
+            auto it = _loggers.find(name);
+            if(it == _loggers.end())
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        Logger::ptr getLogger(const std::string &name)      // 获取指定名称的日志器
+        {
+            std::unique_lock<std::mutex> lock(_mutex);
+            auto it = _loggers.find(name);
+            if(it == _loggers.end())
+            {
+                return nullptr;
+            }
+
+            return it->second;
+        }
+
+        Logger::ptr rootLogger()                            // 获取默认日志器
+        {
+            return _root_logger;
+        }
 
     private:
         LoggerManager()
         {
-
+            std::unique_ptr<mylog::LoggerBuilder> builder(new mylog::LocalLoggerBuilder());
+            builder->buildLoggerName("root");
+            _root_logger = builder->build();
+            _loggers.insert(std::make_pair("root", _root_logger));
         }
 
     private:
         std::mutex _mutex;
-        Logger::ptr _root_logger;           // 默认日志器
-        std::vector<Logger::ptr> _loggers;  // 所管理的日志器数组
+        Logger::ptr _root_logger;                               // 默认日志器
+        std::unordered_map<std::string, Logger::ptr> _loggers;  // 所管理的日志器数组
     };
 }
