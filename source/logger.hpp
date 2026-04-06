@@ -454,4 +454,47 @@ namespace mylog
         Logger::ptr _root_logger;                               // 默认日志器
         std::unordered_map<std::string, Logger::ptr> _loggers;  // 所管理的日志器数组
     };
+
+
+
+    // 全局日志器建造者：相较于局部日志器建造者的功能：将日志器添加到单例对象中（构建后自动注册到 LoggerManager）
+    // 用于需要全局唯一、按名称共享访问的场景
+    class GlobalLoggerBuilder : public LoggerBuilder
+    {
+    public:
+        Logger::ptr build() override
+        {
+            // 1. 参数验证：日志器必须有名称，否则无法在管理器中查找
+            assert(_logger_name.empty() == false);
+            
+            // 2. 默认格式化器：用户未设置则使用默认模板，默认模板: [%d{%H:%M:%S}][%t][%c][%f:%l][%p]%T%m%n
+            if(_formatter.get() == nullptr)
+            {
+                _formatter = std::make_shared<Formatter>();
+            }
+
+            // 3. 默认输出目标：用户未配置任何 sink 就默认输出到stdout
+            if(_sinks.empty())
+            {
+                buildSink<StdoutSink>();
+            }
+
+            // 4. 根据同步/异步类型创建对应的日志器对象
+            Logger::ptr logger;
+            if (_logger_type == LoggerType::LOGGER_ASYNC)
+            {
+                // 异步日志器：内部包含AsyncLooper，write() 不阻塞
+                logger = std::make_shared<AsyncLogger>(_logger_name, _limit_level, _formatter, _sinks, _looper_type);
+            }
+            else
+            {
+                // 同步日志器：write()会阻塞直到日志落地完成
+                logger = std::make_shared<SyncLogger>(_logger_name, _limit_level, _formatter, _sinks);
+            }
+
+            // 5. 自动注册：将新创建的日志器加入全局管理器
+            LoggerManager::getInstance().addLogger(logger);
+            return logger;
+        }
+    };
 }
