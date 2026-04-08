@@ -1,0 +1,3 @@
+[22:28:59][129143944308544][macro_async_logger][test.cc:39][INFO]	macro -> async info message
+[22:28:59][129143944308544][macro_async_logger][test.cc:40][ERROR]	macro -> async error message
+[22:28:59][129143944308544][macro_async_logger][test.cc:41][FATAL]	macro -> async fatal message
