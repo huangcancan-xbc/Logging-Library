@@ -12,6 +12,7 @@
 #include <memory>
 #include <fstream>
 #include <cassert>
+#include <cstring>
 #include <sstream>
 #include <sys/time.h>   // gettimeofday
 #include <iomanip>
@@ -90,33 +91,114 @@ namespace mylog
             _cur_fsize(0),
             _count(0)
         {
-            std::string filename = createNewFile();
-            // 1.创建日志文件所在路径
-            util::File::createDirectory(util::File::getPath(filename));
-
-            // 2.创建并打开日志文件
-            _ofs.open(filename, std::ios::binary | std::ios::app);
-            assert(_ofs.is_open());
+            openFile(createNewFile());
         }
 
+
+        // 下面有2个方案实现，根据自己所需使用，使用其中一个，请将另一个注释掉！！！
+
+        // 方案1：不允许日志大小超过指定大小用这个
+        // void log(const char *data, size_t len)
+        // {
+        //     // 按行(以\n为分隔)遍历整个缓冲区,确保单条日志完整写入同一文件
+        //     // 避免一条日志被截断分散到多个文件，方便了后续日志分析和问题排查
+        //     const char *start = data;              // 当前处理位置
+        //     const char *end = data + len;          // 缓冲区结束位置
+            
+        //     while (start < end)
+        //     {
+        //         // memchr: 在内存区域查找指定字符首次出现的位置
+        //         // 参数：待搜索内存起始地址、要查找的字符是换行符、搜索字节数即从start开始向后搜索多少字节
+        //         // 返回值: 找到返回指向该位置的指针,未找到返回nullptr
+        //         const char *newline = static_cast<const char*>(memchr(start, '\n', end - start));
+                
+        //         if (newline == nullptr)
+        //         {
+        //             // 当前缓冲区剩余数据不包含换行符，视为最后一条日志(或不完整日志)
+        //             // 先检查当前文件剩余空间是否足够写入这部分数据
+        //             if (_cur_fsize + (end - start) > _max_fsize)
+        //             {
+        //                 // 空间不足，关闭当前文件并创建新文件继续写入
+        //                 _ofs.close();
+        //                 openFile(createNewFile());
+        //             }
+
+        //             // 写入剩余数据并更新当前文件大小
+        //             _ofs.write(start, end - start);
+        //             _cur_fsize += (end - start);
+        //             break;
+        //         }
+                
+        //         size_t line_len = newline - start + 1;  // 找到换行符，计算当前行长度(包含换行符)
+                
+        //         if (_cur_fsize + line_len > _max_fsize) // 检查当前文件剩余空间是否足够写入这一行
+        //         {
+        //             // 空间不足,关闭当前文件并创建新文件
+        //             _ofs.close();
+        //             openFile(createNewFile());
+        //         }
+                
+        //         // 写入当前行并更新当前文件大小
+        //         _ofs.write(start, line_len);
+        //         _cur_fsize += line_len;
+                
+                
+        //         start = newline + 1;        // 移动到下一行开始位置继续处理
+        //     }
+            
+        //     assert(_ofs.good());
+        // }
+
+
+        // 方案2：允许日志大小超过指定大小的一点点
         void log(const char *data, size_t len)
         {
-            // 先判断文件不能继续写入
-            if(_cur_fsize >= _max_fsize)
+            const char *start = data;
+            const char *end = data + len;
+            
+            while (start < end)
             {
-                _ofs.close();               // 先关闭当前文件！
-                std::string pathname = createNewFile();
-                _cur_fsize = 0;             // 将当前文件大小置为0
-                _ofs.open(pathname, std::ios::binary | std::ios::app);
-                assert(_ofs.is_open());
+                const char *newline = static_cast<const char*>(memchr(start, '\n', end - start));
+                if (newline == nullptr)
+                {
+                    _ofs.write(start, end - start);
+                    _cur_fsize += (end - start);
+                    break;
+                }
+                
+                size_t line_len = newline - start + 1;
+                
+                // 先写入再判断，允许单条日志超限，但避免在文件边界截断
+                _ofs.write(start, line_len);
+                _cur_fsize += line_len;
+                
+                // 写入后如果超限则滚动到新文件
+                if (_cur_fsize > _max_fsize)
+                {
+                    _ofs.close();
+                    openFile(createNewFile());
+                }
+                
+                start = newline + 1;
             }
-
-            _ofs.write(data, len);
-            _cur_fsize += len;              // 注意及时更新当前文件大小
-            assert(_ofs.good());            // 检查文件操作有没有出错
+            assert(_ofs.good());
         }
 
     private:
+        // 打开一个日志文件，并把 RollBySizeSink 内部记录的当前文件大小 _cur_fsize 同步成这个文件的真实大小
+        void openFile(const std::string &filename)
+        {
+            // 统一负责打开日志文件，并在打开后同步当前文件实际大小
+            // 这样即使文件是以追加模式打开，_cur_fsize 也不会错误地从 0 开始计算
+            util::File::createDirectory(util::File::getPath(filename));
+            _ofs.open(filename, std::ios::binary | std::ios::app);
+            assert(_ofs.is_open());
+
+            // app 模式下写指针位于文件末尾，tellp() 可以拿到当前文件已有大小
+            std::streampos pos = _ofs.tellp();
+            _cur_fsize = (pos < 0) ? 0 : static_cast<size_t>(pos);
+        }
+
         std::string createNewFile()         // 进行大小判断，超过最大大小则创建新文件
         {
             time_t t = util::Date::now();   // 获取系统时间
