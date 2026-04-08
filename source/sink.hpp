@@ -98,91 +98,95 @@ namespace mylog
         // 下面有2个方案实现，根据自己所需使用，使用其中一个，请将另一个注释掉！！！
 
         // 方案1：不允许日志大小超过指定大小用这个
-        // void log(const char *data, size_t len)
-        // {
-        //     // 按行(以\n为分隔)遍历整个缓冲区,确保单条日志完整写入同一文件
-        //     // 避免一条日志被截断分散到多个文件，方便了后续日志分析和问题排查
-        //     const char *start = data;              // 当前处理位置
-        //     const char *end = data + len;          // 缓冲区结束位置
-            
-        //     while (start < end)
-        //     {
-        //         // memchr: 在内存区域查找指定字符首次出现的位置
-        //         // 参数：待搜索内存起始地址、要查找的字符是换行符、搜索字节数即从start开始向后搜索多少字节
-        //         // 返回值: 找到返回指向该位置的指针,未找到返回nullptr
-        //         const char *newline = static_cast<const char*>(memchr(start, '\n', end - start));
-                
-        //         if (newline == nullptr)
-        //         {
-        //             // 当前缓冲区剩余数据不包含换行符，视为最后一条日志(或不完整日志)
-        //             // 先检查当前文件剩余空间是否足够写入这部分数据
-        //             if (_cur_fsize + (end - start) > _max_fsize)
-        //             {
-        //                 // 空间不足，关闭当前文件并创建新文件继续写入
-        //                 _ofs.close();
-        //                 openFile(createNewFile());
-        //             }
-
-        //             // 写入剩余数据并更新当前文件大小
-        //             _ofs.write(start, end - start);
-        //             _cur_fsize += (end - start);
-        //             break;
-        //         }
-                
-        //         size_t line_len = newline - start + 1;  // 找到换行符，计算当前行长度(包含换行符)
-                
-        //         if (_cur_fsize + line_len > _max_fsize) // 检查当前文件剩余空间是否足够写入这一行
-        //         {
-        //             // 空间不足,关闭当前文件并创建新文件
-        //             _ofs.close();
-        //             openFile(createNewFile());
-        //         }
-                
-        //         // 写入当前行并更新当前文件大小
-        //         _ofs.write(start, line_len);
-        //         _cur_fsize += line_len;
-                
-                
-        //         start = newline + 1;        // 移动到下一行开始位置继续处理
-        //     }
-            
-        //     assert(_ofs.good());
-        // }
-
-
-        // 方案2：允许日志大小超过指定大小的一点点
         void log(const char *data, size_t len)
         {
-            const char *start = data;
-            const char *end = data + len;
+            // 按行(以\n为分隔)遍历整个缓冲区,确保单条日志完整写入同一文件
+            // 避免一条日志被截断分散到多个文件，方便了后续日志分析和问题排查
+            const char *start = data;              // 当前处理位置
+            const char *end = data + len;          // 缓冲区结束位置
             
             while (start < end)
             {
+                // memchr: 在内存区域查找指定字符首次出现的位置
+                // 参数：待搜索内存起始地址、要查找的字符是换行符、搜索字节数即从start开始向后搜索多少字节
+                // 返回值: 找到返回指向该位置的指针,未找到返回nullptr
                 const char *newline = static_cast<const char*>(memchr(start, '\n', end - start));
+                
                 if (newline == nullptr)
                 {
+                    // 剩余数据如果不包含换行符，且会导致超限（前提是当前文件非空），则滚动
+                    if (_cur_fsize > 0 && _cur_fsize + (end - start) > _max_fsize)
+                    {
+                        _ofs.close();
+                        openFile(createNewFile());
+                    }
+
                     _ofs.write(start, end - start);
                     _cur_fsize += (end - start);
                     break;
                 }
                 
-                size_t line_len = newline - start + 1;
+                size_t line_len = newline - start + 1;  // 找到换行符，计算当前行长度(包含换行符)
                 
-                // 先写入再判断，允许单条日志超限，但避免在文件边界截断
-                _ofs.write(start, line_len);
-                _cur_fsize += line_len;
-                
-                // 写入后如果超限则滚动到新文件
-                if (_cur_fsize > _max_fsize)
+                // 检查当前行写入后是否会超限
+                if (_cur_fsize > 0 && _cur_fsize + line_len > _max_fsize)
                 {
                     _ofs.close();
                     openFile(createNewFile());
                 }
                 
+                _ofs.write(start, line_len);
+                _cur_fsize += line_len;
+                
                 start = newline + 1;
             }
+
             assert(_ofs.good());
         }
+
+
+        // // 方案2：允许日志大小超过指定大小的一点点
+        // void log(const char *data, size_t len)
+        // {
+        //     const char *start = data;
+        //     const char *end = data + len;
+            
+        //     while (start < end)
+        //     {
+        //         const char *newline = static_cast<const char*>(memchr(start, '\n', end - start));
+        //         if (newline == nullptr)
+        //         {
+        //             // 将剩余数据全部写入
+        //             size_t remaining_len = end - start;
+        //             _ofs.write(start, remaining_len);
+        //             _cur_fsize += remaining_len;
+                    
+        //             // 即使是最后一段，写入后也需要判断是否超限并滚动
+        //             if (_cur_fsize >= _max_fsize)
+        //             {
+        //                 _ofs.close();
+        //                 openFile(createNewFile());
+        //             }
+        //             break;
+        //         }
+                
+        //         size_t line_len = newline - start + 1;
+                
+        //         // 先写入再判断，允许单条日志超限，但避免在文件边界截断
+        //         _ofs.write(start, line_len);
+        //         _cur_fsize += line_len;
+                
+        //         // 写入后如果超限则滚动到新文件
+        //         if (_cur_fsize >= _max_fsize)
+        //         {
+        //             _ofs.close();
+        //             openFile(createNewFile());
+        //         }
+                
+        //         start = newline + 1;
+        //     }
+        //     assert(_ofs.good());
+        // }
 
     private:
         // 打开一个日志文件，并把 RollBySizeSink 内部记录的当前文件大小 _cur_fsize 同步成这个文件的真实大小
@@ -232,6 +236,8 @@ namespace mylog
         // 所以现象是滚动文件看似滚动，实则还是写到了一个文件
         size_t _count;              // 解决办法：来一个计数器将这些文件分开，避免一秒内的产生多个文件被写到一起
     };
+
+
 
     class SinkFactory
     {
