@@ -1,0 +1,5 @@
+[2026-04-09 20:07:29][mixed_global_sync][DEBUG]	mixed example style debug
+[2026-04-09 20:07:29][mixed_global_sync][INFO]	mixed example style info
+[2026-04-09 20:07:29][mixed_global_sync][DEBUG]	[global] mixed_global_sync debug message
+[2026-04-09 20:07:29][mixed_global_sync][ERROR]	[global] mixed_global_sync error message
+[2026-04-09 20:07:29][mixed_global_sync][WARN]	[global] mixed_global_sync warn message

@@ -89,6 +89,27 @@ namespace mylog
             free(res);
         }
 
+        // // 想到一个场景，可能会有用，但是似乎意义不太大，现在在这里放上一个实现，其他的实现可直接复制这个做简单修改！
+        // void debug(const std::string &fmt, ...)
+        // {
+        //     if(LogLevel::value::DEBUG < _limit_level)
+        //     {
+        //         return;
+        //     }
+
+        //     va_list ap;
+        //     va_start(ap, fmt);
+        //     char *res;
+        //     int ret = vasprintf(&res, fmt.c_str(), ap);
+        //     if(ret == -1)
+        //     {
+        //         std::cout << "vasprintf failed!\n";
+        //     }
+        //     va_end(ap);
+
+        //     serialize(LogLevel::value::DEBUG, "", 0, res);
+        //     free(res);
+        // }
 
         void info(const std::string &file, size_t line, const std::string &fmt, ...)
         {
