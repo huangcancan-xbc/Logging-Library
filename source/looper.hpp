@@ -4,6 +4,8 @@
 // 两个线程通过两个缓冲区+条件变量协作，互不阻塞
 
 
+#pragma once
+
 #include "buffer.hpp"
 #include <mutex>
 #include <condition_variable>

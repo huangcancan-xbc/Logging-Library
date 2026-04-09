@@ -7,10 +7,10 @@
 
 enum class TimeGap
 {
-    GAP_SECOND,
-    GAP_MINUTE,
-    GAP_HOUR,
-    GAP_DAY,
+    GAP_SECOND,     // 秒
+    GAP_MINUTE,     // 分钟
+    GAP_HOUR,       // 小时
+    GAP_DAY,        // 天
 };
 
 

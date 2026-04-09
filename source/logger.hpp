@@ -8,6 +8,7 @@
 // 普通日志器（SyncLogger）：收到日志→立刻写文件→写完才返回（要等）
 // 异步日志器（AsyncLogger）：收到日志→扔进缓冲区就跑→后台线程慢慢写文件（不用等）
 
+#pragma once
 
 #include "util.hpp"
 #include "level.hpp"

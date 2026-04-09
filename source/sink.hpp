@@ -7,6 +7,7 @@
 //   - RollBySizeSink  : 滚动文件（按大小切割）
 
 
+#pragma once
 
 #include "util.hpp"
 #include <memory>
