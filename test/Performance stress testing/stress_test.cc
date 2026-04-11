@@ -115,7 +115,7 @@ void async_test()
     builder->buildLoggerName("async_logger");
     builder->buildFormatter("%m%n");
     builder->buildLoggerType(mylog::LoggerType::LOGGER_ASYNC);
-    builder->buildEnableUnSafeAsync();
+    // builder->buildEnableUnSafeAsync();  // 启用非安全模式，安全模式的缓冲区满了会阻塞，非安全缓冲区满了就扩容、不阻塞
     builder->buildSink<mylog::FileSink>("./logs/async.log");
     builder->build();
 
@@ -125,8 +125,8 @@ void async_test()
 
 int main()
 {
-    sync_test();
-    // async_test();
+    // sync_test();
+    async_test();
 
     return 0;
 }
