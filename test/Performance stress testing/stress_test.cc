@@ -119,7 +119,7 @@ void async_test()
     builder->buildSink<mylog::FileSink>("./logs/async.log");
     builder->build();
 
-    stress_test("async_logger", 1, 10000000, 100);
+    stress_test("async_logger", 6, 10000000, 100);
 }
 
 
