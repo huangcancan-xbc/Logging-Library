@@ -105,7 +105,7 @@ void sync_test()
     builder->buildSink<mylog::FileSink>("./logs/sync.log");
     builder->build();
 
-    stress_test("sync_logger", 1, 10000000, 100);
+    stress_test("sync_logger", 6, 10000000, 100);
 }
 
 
